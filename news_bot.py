@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-最简单的新闻简讯机器人
-小白专用版
+修正版新闻简讯机器人
+修复了字符串编码问题
 """
 
 import os
@@ -12,24 +12,27 @@ import random
 
 class SimpleNewsSender:
     def __init__(self):
-        # 这些信息会在GitHub后台设置，这里不用改
-        self.sender = os.getenv('EMAIL_USER')
-        self.password = os.getenv('EMAIL_PASS') 
-        self.receiver = os.getenv('RECEIVER_EMAIL')
+        # 从环境变量获取配置
+        self.sender = os.getenv('EMAIL_USER', '').strip()
+        self.password = os.getenv('EMAIL_PASS', '').strip()
+        self.receiver = os.getenv('RECEIVER_EMAIL', '').strip()
+        
+        print(f"📧 配置检查:")
+        print(f"  发件人: {'已设置' if self.sender else '未设置'}")
+        print(f"  密码: {'已设置' if self.password else '未设置'}")
+        print(f"  收件人: {'已设置' if self.receiver else '未设置'}")
     
     def get_daily_news(self):
         """生成今日新闻简讯"""
         today = datetime.now().strftime("%m月%d日")
         
         # 新闻分类
-        news_categories = [
+        news_items = [
             "国内：经济社会发展稳步推进，各地重点项目建设加快",
             "国际：多边合作持续深化，国际交流更加密切", 
             "科技：创新驱动发展，数字技术应用拓展",
             "财经：市场运行平稳，消费活力持续恢复",
             "民生：基本保障完善，公共服务优化提升",
-            "文化：精神生活丰富，文化活动多样",
-            "健康：医疗服务改善，健康意识增强",
             "提醒：关注天气变化，注意出行安全"
         ]
         
@@ -42,72 +45,85 @@ class SimpleNewsSender:
             "🚀 勇于创新，敢于追梦"
         ]
         
-        # 组合内容
+        # 组合内容 - 确保所有部分都是字符串
         content = f"📰 【每日新闻简讯】{today}\n\n"
-        content += "="*40 + "\n\n"
+        content += "=" * 40 + "\n\n"
         
-        # 添加新闻
-        for i, news in enumerate(news_categories[:6], 1):
+        for i, news in enumerate(news_items, 1):
             content += f"{i}. {news}\n\n"
         
-        content += "="*40 + "\n\n"
+        content += "=" * 40 + "\n\n"
         content += "✨ 每日一句\n"
         content += random.choice(quotes) + "\n\n"
-        content += "="*40 + "\n"
+        content += "=" * 40 + "\n"
         content += "📧 自动发送，无需回复\n"
-        content += f"⏰ {datetime.now().strftime('%H:%M:%S')}\n"
+        content += f"⏰ 发送时间: {datetime.now().strftime('%H:%M:%S')}\n"
         content += "💝 祝您生活愉快！"
         
         return content
     
-def send_email(self):
-    """发送邮件"""
-    try:
-        print("🤖 开始发送每日新闻...")
-        
-        # 获取内容
-        content = self.get_daily_news()
-        today = datetime.now().strftime("%Y年%m月%d日")
-        
-        # 创建邮件 - 确保使用正确的编码
-        msg = MIMEText(content, 'plain', 'utf-8')
-        msg['Subject'] = f"📰 每日新闻简讯 {today}"
-        msg['From'] = self.sender
-        msg['To'] = self.receiver
-        
-        print(f"📧 发件人: {self.sender}")
-        print(f"📨 收件人: {self.receiver}")
-        print(f"📝 邮件长度: {len(content)} 字符")
-        
-        # 发送邮件（QQ邮箱）
-        print("🔗 正在连接邮件服务器...")
-        with smtplib.SMTP_SSL('smtp.qq.com', 465) as server:
-            print("✅ 服务器连接成功")
-            print("🔐 正在登录邮箱...")
-            server.login(self.sender, self.password)
-            print("✅ 邮箱登录成功")
-            print("📤 正在发送邮件...")
-            server.send_message(msg)
-        
-        print(f"✅ 发送成功！时间：{datetime.now().strftime('%H:%M:%S')}")
-        return True
-        
-    except smtplib.SMTPException as e:
-        # 专门处理SMTP错误
-        error_msg = str(e) if not isinstance(e, bytes) else e.decode('utf-8', errors='ignore')
-        print(f"❌ SMTP发送失败：{error_msg}")
-        return False
-    except Exception as e:
-        # 处理其他所有错误
-        error_msg = str(e) if not isinstance(e, bytes) else e.decode('utf-8', errors='ignore')
-        print(f"❌ 未知错误：{error_msg}")
-        return False
+    def send_email(self):
+        """发送邮件"""
+        try:
+            print("🤖 开始发送每日新闻...")
+            
+            # 检查配置
+            if not all([self.sender, self.password, self.receiver]):
+                print("❌ 配置不完整，请检查GitHub Secrets设置")
+                return False
+            
+            # 获取内容
+            content = self.get_daily_news()
+            today = datetime.now().strftime("%Y年%m月%d日")
+            
+            # 创建邮件
+            msg = MIMEText(content, 'plain', 'utf-8')
+            msg['Subject'] = f"📰 每日新闻简讯 {today}"
+            msg['From'] = self.sender
+            msg['To'] = self.receiver
+            
+            print(f"📨 准备发送到: {self.receiver}")
+            
+            # 发送邮件
+            print("🔗 连接到 smtp.qq.com:465...")
+            with smtplib.SMTP_SSL('smtp.qq.com', 465, timeout=10) as server:
+                print("✅ 连接成功")
+                print("🔐 正在登录...")
+                server.login(self.sender, self.password)
+                print("✅ 登录成功")
+                print("📤 发送邮件...")
+                server.send_message(msg)
+                print("✅ 邮件已发送")
+            
+            print(f"🎉 发送成功！时间：{datetime.now().strftime('%H:%M:%S')}")
+            return True
+            
+        except smtplib.SMTPAuthenticationError as e:
+            error_msg = str(e)
+            print(f"❌ 认证失败：{error_msg}")
+            print("💡 可能的原因：")
+            print("   1. 邮箱密码/授权码错误")
+            print("   2. 邮箱未开启SMTP服务")
+            print("   3. QQ邮箱需要授权码，不是登录密码")
+            return False
+        except smtplib.SMTPException as e:
+            error_msg = str(e)
+            print(f"❌ SMTP错误：{error_msg}")
+            return False
+        except Exception as e:
+            # 确保错误信息是字符串
+            if isinstance(e, bytes):
+                error_msg = e.decode('utf-8', errors='ignore')
+            else:
+                error_msg = str(e)
+            print(f"❌ 发送失败：{error_msg}")
+            return False
 
 # 主程序
 if __name__ == "__main__":
-    print("="*50)
+    print("=" * 50)
     print("📰 每日新闻简讯机器人")
-    print("="*50)
+    print("=" * 50)
     
     sender = SimpleNewsSender()
     success = sender.send_email()
@@ -115,5 +131,5 @@ if __name__ == "__main__":
     if success:
         print("🎉 任务完成！请检查您的邮箱")
     else:
-        print("😅 发送失败，请检查配置")
-    print("="*50)
+        print("😅 发送失败，请查看上方错误信息")
+    print("=" * 50)
