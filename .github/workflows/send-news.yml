@@ -1,0 +1,37 @@
+name: 每日新闻简讯
+
+on:
+  # 每天北京时间20:00自动运行（UTC时间12:00）
+  schedule:
+    - cron: '0 12 * * *'
+  
+  # 允许手动点击运行（测试用）
+  workflow_dispatch:
+
+jobs:
+  send-email:
+    runs-on: ubuntu-latest
+    
+    steps:
+    # 1. 获取代码
+    - name: 获取代码
+      uses: actions/checkout@v3
+    
+    # 2. 设置Python环境
+    - name: 设置Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    # 3. 运行发送脚本
+    - name: 发送新闻简讯
+      env:
+        EMAIL_USER: ${{ secrets.EMAIL_USER }}
+        EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+        RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
+      run: python news_bot.py
+    
+    # 4. 完成提示
+    - name: 完成通知
+      if: success()
+      run: echo "✅ 新闻简讯已发送！"
