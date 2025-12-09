@@ -60,32 +60,48 @@ class SimpleNewsSender:
         
         return content
     
-    def send_email(self):
-        """发送邮件"""
-        try:
-            print("🤖 开始发送每日新闻...")
-            
-            # 获取内容
-            content = self.get_daily_news()
-            today = datetime.now().strftime("%Y年%m月%d日")
-            
-            # 创建邮件
-            msg = MIMEText(content, 'plain', 'utf-8')
-            msg['Subject'] = f"📰 每日新闻简讯 {today}"
-            msg['From'] = self.sender
-            msg['To'] = self.receiver
-            
-            # 发送邮件（QQ邮箱）
-            with smtplib.SMTP_SSL('smtp.qq.com', 465) as server:
-                server.login(self.sender, self.password)
-                server.send_message(msg)
-            
-            print(f"✅ 发送成功！时间：{datetime.now().strftime('%H:%M:%S')}")
-            return True
-            
-        except Exception as e:
-            print(f"❌ 发送失败：{str(e)}")
-            return False
+def send_email(self):
+    """发送邮件"""
+    try:
+        print("🤖 开始发送每日新闻...")
+        
+        # 获取内容
+        content = self.get_daily_news()
+        today = datetime.now().strftime("%Y年%m月%d日")
+        
+        # 创建邮件 - 确保使用正确的编码
+        msg = MIMEText(content, 'plain', 'utf-8')
+        msg['Subject'] = f"📰 每日新闻简讯 {today}"
+        msg['From'] = self.sender
+        msg['To'] = self.receiver
+        
+        print(f"📧 发件人: {self.sender}")
+        print(f"📨 收件人: {self.receiver}")
+        print(f"📝 邮件长度: {len(content)} 字符")
+        
+        # 发送邮件（QQ邮箱）
+        print("🔗 正在连接邮件服务器...")
+        with smtplib.SMTP_SSL('smtp.qq.com', 465) as server:
+            print("✅ 服务器连接成功")
+            print("🔐 正在登录邮箱...")
+            server.login(self.sender, self.password)
+            print("✅ 邮箱登录成功")
+            print("📤 正在发送邮件...")
+            server.send_message(msg)
+        
+        print(f"✅ 发送成功！时间：{datetime.now().strftime('%H:%M:%S')}")
+        return True
+        
+    except smtplib.SMTPException as e:
+        # 专门处理SMTP错误
+        error_msg = str(e) if not isinstance(e, bytes) else e.decode('utf-8', errors='ignore')
+        print(f"❌ SMTP发送失败：{error_msg}")
+        return False
+    except Exception as e:
+        # 处理其他所有错误
+        error_msg = str(e) if not isinstance(e, bytes) else e.decode('utf-8', errors='ignore')
+        print(f"❌ 未知错误：{error_msg}")
+        return False
 
 # 主程序
 if __name__ == "__main__":
